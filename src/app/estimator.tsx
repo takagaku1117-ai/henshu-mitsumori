@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import {
   DEFAULT_PRICES,
   RUSH_DAYS,
@@ -10,17 +10,14 @@ import {
   validateInput,
   type Telop,
 } from "@/lib/estimate";
+import { TELOP_LABELS, buildReply, rushReason, yen } from "@/lib/reply";
 
-const TELOP_OPTIONS: { value: Telop; label: string }[] = [
-  { value: "none", label: "なし" },
-  { value: "key", label: "要所のみ" },
-  { value: "full", label: "全編" },
-];
+const TELOP_OPTIONS = Object.entries(TELOP_LABELS) as [Telop, string][];
 
 // 納品希望日の初期値は1週間後（特急にならない日）
 const DEFAULT_LEAD_DAYS = 7;
 
-const yen = (amount: number) => `${amount.toLocaleString("ja-JP")}円`;
+type CopyState = "idle" | "copied" | "failed";
 
 // 「今日」はブラウザでだけ読む。サーバーの事前レンダリングでは null にして「読み込み中」を出す
 // （cacheComponents のビルドで new Date() を呼ぶとエラーになり、UTC のサーバーとは日付もずれるため）
@@ -40,6 +37,10 @@ export default function Estimator() {
   const [thumbnail, setThumbnail] = useState(false);
   // null のあいだは「今日から1週間後」を使う（今日が分かるまで初期値を決められないため）
   const [deliveryDate, setDeliveryDate] = useState<string | null>(null);
+  // 宛名は画面の中だけで使い、どこにも保存しない
+  const [clientName, setClientName] = useState("");
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   if (today === null) {
     return (
@@ -56,6 +57,28 @@ export default function Estimator() {
   };
   const errors = validateInput(input, today);
   const result = errors.length === 0 ? estimate(input, today) : null;
+  const reply =
+    result === null
+      ? null
+      : buildReply({
+          input,
+          result,
+          clientName,
+          today,
+          rushPercent: DEFAULT_PRICES.rushPercent,
+        });
+
+  async function copyReply() {
+    if (reply === null) return;
+    clearTimeout(copyTimer.current);
+    try {
+      await navigator.clipboard.writeText(reply);
+      setCopyState("copied");
+      copyTimer.current = setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      setCopyState("failed");
+    }
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -81,20 +104,20 @@ export default function Estimator() {
           <fieldset>
             <legend className="mb-1 text-sm font-medium">テロップ量</legend>
             <div className="grid grid-cols-3 gap-2">
-              {TELOP_OPTIONS.map((option) => (
+              {TELOP_OPTIONS.map(([value, label]) => (
                 <label
-                  key={option.value}
+                  key={value}
                   className="cursor-pointer rounded border border-line py-2 text-center text-sm has-checked:border-ink has-checked:bg-ink has-checked:text-panel has-focus-visible:outline-2 has-focus-visible:outline-accent"
                 >
                   <input
                     type="radio"
                     name="telop"
-                    value={option.value}
-                    checked={telop === option.value}
-                    onChange={() => setTelop(option.value)}
+                    value={value}
+                    checked={telop === value}
+                    onChange={() => setTelop(value)}
                     className="sr-only"
                   />
-                  {option.label}
+                  {label}
                 </label>
               ))}
             </div>
@@ -172,9 +195,7 @@ export default function Estimator() {
                     <td className="px-1 py-1.5">
                       特急料金（{DEFAULT_PRICES.rushPercent}%）
                       <span className="block text-xs">
-                        {result.rush.daysLeft === 0
-                          ? "当日納品のため"
-                          : `納品まで${result.rush.daysLeft}日のため`}
+                        {rushReason(result.rush.daysLeft)}
                       </span>
                     </td>
                     <td className="px-1 py-1.5 text-right font-mono">
@@ -190,10 +211,43 @@ export default function Estimator() {
 
       <section className={cardClass}>
         <h2 className={cardTitleClass}>返信文</h2>
-        <p className="text-sm text-ink-soft">
-          クライアントにそのまま送れる文面をコピー
-        </p>
-        <p className="mt-4 text-xs text-ink-soft">（準備中）</p>
+        <label className="mb-3 block">
+          <span className="mb-1 block text-sm font-medium">宛名（任意）</span>
+          <span className="flex items-center gap-2">
+            <input
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="例：山田"
+              className="w-full min-w-0 rounded border border-line bg-paper px-3 py-2 focus:border-ink focus:outline-none"
+            />
+            <span className="shrink-0 text-sm">様</span>
+          </span>
+        </label>
+        {reply === null ? (
+          <p className="text-sm text-ink-soft">条件を直すと返信文ができます</p>
+        ) : (
+          <textarea
+            readOnly
+            value={reply}
+            rows={12}
+            aria-label="返信文"
+            className="w-full resize-y rounded border border-line bg-paper p-3 text-sm leading-relaxed"
+          />
+        )}
+        <button
+          type="button"
+          onClick={copyReply}
+          disabled={reply === null}
+          className="mt-3 w-full rounded bg-ink py-2.5 text-sm font-bold text-panel hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {copyState === "copied" ? "コピーしました ✓" : "返信文をコピー"}
+        </button>
+        {copyState === "failed" && (
+          <p className="mt-2 text-xs text-accent" role="alert">
+            コピーできませんでした。文面を長押し（右クリック）してコピーしてください
+          </p>
+        )}
       </section>
     </div>
   );
