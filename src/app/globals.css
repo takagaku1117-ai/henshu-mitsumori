@@ -1,26 +1,21 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* 見積書・伝票のような落ち着いた配色。色は直接書かず、bg-paper や text-ink-soft のように使う */
+@theme {
+  --color-paper: #f4f1ea;
+  --color-panel: #fffdf8;
+  --color-ink: #1f2a37;
+  --color-ink-soft: #5b6573;
+  --color-line: #d9d3c5;
+  --color-accent: #b4432f;
+  --color-accent-wash: #f6e3dd;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-zen-kaku), sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
