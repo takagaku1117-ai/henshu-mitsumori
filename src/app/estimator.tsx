@@ -10,7 +10,14 @@ import {
   validateInput,
   type Telop,
 } from "@/lib/estimate";
-import { TELOP_LABELS, buildReply, rushReason, yen } from "@/lib/reply";
+import { buildPlans } from "@/lib/plans";
+import {
+  TELOP_LABELS,
+  buildReply,
+  describePlan,
+  rushReason,
+  yen,
+} from "@/lib/reply";
 import { usePrices } from "@/lib/use-prices";
 
 const TELOP_OPTIONS = Object.entries(TELOP_LABELS) as [Telop, string][];
@@ -41,6 +48,7 @@ export default function Estimator() {
   const [deliveryDate, setDeliveryDate] = useState<string | null>(null);
   // 宛名は画面の中だけで使い、どこにも保存しない
   const [clientName, setClientName] = useState("");
+  const [includePlans, setIncludePlans] = useState(false);
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -59,6 +67,14 @@ export default function Estimator() {
   };
   const errors = validateInput(input, today);
   const result = errors.length === 0 ? estimate(input, today, prices) : null;
+  // 松竹梅（F-05）。竹＝依頼どおりなので、金額は上の result と同じになる
+  const plans =
+    result === null
+      ? []
+      : buildPlans(input).map((plan) => ({
+          ...plan,
+          total: estimate(plan.input, today, prices).total,
+        }));
   const reply =
     result === null
       ? null
@@ -68,6 +84,9 @@ export default function Estimator() {
           clientName,
           today,
           rushPercent: prices.rushPercent,
+          otherPlans: includePlans
+            ? plans.filter((plan) => plan.id !== "take")
+            : [],
         });
 
   async function copyReply() {
@@ -234,6 +253,15 @@ export default function Estimator() {
             <span className="shrink-0 text-sm">様</span>
           </span>
         </label>
+        <label className="mb-3 flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={includePlans}
+            onChange={(e) => setIncludePlans(e.target.checked)}
+            className="size-4 accent-ink"
+          />
+          返信文に松竹梅のプランも入れる
+        </label>
         {reply === null ? (
           <p className="text-sm text-ink-soft">条件を直すと返信文ができます</p>
         ) : (
@@ -259,6 +287,38 @@ export default function Estimator() {
           </p>
         )}
       </section>
+
+      {plans.length > 0 && (
+        <section className={`${cardClass} md:col-span-2`}>
+          <h2 className={cardTitleClass}>松竹梅で提案</h2>
+          <p className="mb-3 text-xs text-ink-soft">
+            ご依頼どおりの「竹」に、安い「梅」と充実した「松」を並べます。完成尺と納品日は同じです。
+          </p>
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {plans.map((plan) => (
+              <li
+                key={plan.id}
+                className={`rounded border p-3 ${plan.id === "take" ? "border-2 border-ink" : "border-line"}`}
+              >
+                <p className="mb-1 flex items-baseline justify-between gap-2">
+                  <span className="font-bold">
+                    {plan.name}
+                    <span className="ml-1 text-xs font-normal text-ink-soft">
+                      {plan.label}
+                    </span>
+                  </span>
+                  <span className="font-mono text-lg font-semibold">
+                    {yen(plan.total)}
+                  </span>
+                </p>
+                <p className="text-xs text-ink-soft">
+                  {describePlan(plan.input)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

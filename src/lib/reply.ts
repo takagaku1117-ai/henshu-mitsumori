@@ -25,12 +25,31 @@ export function formatJaDate(date: string, today: string) {
   return `${year}${m}月${d}日（${weekday}）`;
 }
 
+// プランの中身の説明。例：「テロップ 全編・BGM・効果音・サムネイル」
+export function describePlan(input: EstimateInput) {
+  const parts: string[] = [];
+  if (input.telop !== "none")
+    parts.push(`テロップ ${TELOP_LABELS[input.telop]}`);
+  if (input.bgm) parts.push("BGM・効果音");
+  if (input.thumbnail) parts.push("サムネイル");
+  return parts.length === 0 ? "編集のみ" : parts.join("・");
+}
+
+// 返信文に載せるほかのプラン（F-05）。金額は画面側で estimate() して渡す
+export type ReplyPlan = {
+  name: string;
+  label: string;
+  input: EstimateInput;
+  total: number;
+};
+
 type ReplyParams = {
   input: EstimateInput;
   result: Estimate;
   clientName: string;
   today: string;
   rushPercent: number;
+  otherPlans?: ReplyPlan[];
 };
 
 export function buildReply({
@@ -39,6 +58,7 @@ export function buildReply({
   clientName,
   today,
   rushPercent,
+  otherPlans = [],
 }: ReplyParams) {
   const name = clientName.trim();
   const yesNo = (value: boolean) => (value ? "あり" : "なし");
@@ -66,6 +86,16 @@ export function buildReply({
     "",
     `■ お見積もり金額：${yen(result.total)}（税込）`,
     ...breakdown,
+    ...(otherPlans.length === 0
+      ? []
+      : [
+          "",
+          "■ ほかのプランもご用意できます",
+          ...otherPlans.map(
+            (plan) =>
+              `・${plan.name}（${plan.label}）：${describePlan(plan.input)} … ${yen(plan.total)}（税込）`,
+          ),
+        ]),
     "",
     "ご検討のほど、よろしくお願いいたします。",
   ].join("\n");
