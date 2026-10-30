@@ -1,28 +1,9 @@
 // 見積もりの計算（F-02）。画面から切り離して tests/estimate.test.mjs でテストする
 // Node の型の取り除き（type stripping）で読み込むので、enum などの TS 独自の書き方は使わない
+// 料金表（型と初期値）は prices.ts にある。ここからは型だけを読み込む
+import type { PriceTable } from "./prices";
 
 export type Telop = "none" | "key" | "full";
-
-export type PriceTable = {
-  base: number;
-  perMinute: number;
-  telopKeyPerMinute: number;
-  telopFullPerMinute: number;
-  bgm: number;
-  thumbnail: number;
-  // 特急料金は小計の何％か。小数の誤差を避けるため 0.3 ではなく 30 で持つ
-  rushPercent: number;
-};
-
-export const DEFAULT_PRICES: PriceTable = {
-  base: 3000,
-  perMinute: 1000,
-  telopKeyPerMinute: 300,
-  telopFullPerMinute: 800,
-  bgm: 1000,
-  thumbnail: 2000,
-  rushPercent: 30,
-};
 
 export type EstimateInput = {
   minutes: number;
@@ -97,7 +78,7 @@ export function validateInput(input: EstimateInput, today: string) {
 export function estimate(
   input: EstimateInput,
   today: string,
-  prices: PriceTable = DEFAULT_PRICES,
+  prices: PriceTable,
 ): Estimate {
   const { minutes } = input;
   const lines: EstimateLine[] = [

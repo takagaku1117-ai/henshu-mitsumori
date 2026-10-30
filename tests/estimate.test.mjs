@@ -1,8 +1,8 @@
 // 見積もりの計算（src/lib/estimate.ts）のテスト。npm test で実行する
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { DEFAULT_PRICES } from "../src/lib/prices.ts";
 import {
-  DEFAULT_PRICES,
   addDays,
   daysUntil,
   estimate,
@@ -25,7 +25,7 @@ const input = (overrides = {}) => ({
 
 describe("estimate（F-02）", () => {
   test("requirements.md の例：10分・テロップ全編・BGMあり は 22,000円", () => {
-    const result = estimate(input({ telop: "full", bgm: true }), TODAY);
+    const result = estimate(input({ telop: "full", bgm: true }), TODAY, DEFAULT_PRICES);
     assert.equal(result.total, 22000);
     assert.equal(result.subtotal, 22000);
     assert.equal(result.rush, null);
@@ -38,13 +38,13 @@ describe("estimate（F-02）", () => {
   });
 
   test("テロップは なし / 要所のみ / 全編 で 0 / 3,000 / 8,000円 変わる", () => {
-    assert.equal(estimate(input({ telop: "none" }), TODAY).total, 13000);
-    assert.equal(estimate(input({ telop: "key" }), TODAY).total, 16000);
-    assert.equal(estimate(input({ telop: "full" }), TODAY).total, 21000);
+    assert.equal(estimate(input({ telop: "none" }), TODAY, DEFAULT_PRICES).total, 13000);
+    assert.equal(estimate(input({ telop: "key" }), TODAY, DEFAULT_PRICES).total, 16000);
+    assert.equal(estimate(input({ telop: "full" }), TODAY, DEFAULT_PRICES).total, 21000);
   });
 
   test("サムネイルありで 2,000円 足される", () => {
-    assert.equal(estimate(input({ thumbnail: true }), TODAY).total, 15000);
+    assert.equal(estimate(input({ thumbnail: true }), TODAY, DEFAULT_PRICES).total, 15000);
   });
 
   test("特急は小計の30%を足し、100円単位で切り上げる", () => {
@@ -52,6 +52,7 @@ describe("estimate（F-02）", () => {
     const result = estimate(
       input({ minutes: 1, telop: "key", deliveryDate: TODAY }),
       TODAY,
+      DEFAULT_PRICES,
     );
     assert.equal(result.subtotal, 4300);
     assert.equal(result.total, 5600);
@@ -84,12 +85,12 @@ describe("特急の境界（今日〜3日後は特急）", () => {
   });
 
   test("4日後は特急ではない", () => {
-    const result = estimate(input({ deliveryDate: "2026-11-03" }), TODAY);
+    const result = estimate(input({ deliveryDate: "2026-11-03" }), TODAY, DEFAULT_PRICES);
     assert.equal(result.rush, null);
   });
 
   test("月をまたいでも日数を正しく数える（10/30 → 11/2 は3日後）", () => {
-    const result = estimate(input({ deliveryDate: "2026-11-02" }), TODAY);
+    const result = estimate(input({ deliveryDate: "2026-11-02" }), TODAY, DEFAULT_PRICES);
     assert.equal(result.rush?.daysLeft, 3);
     assert.equal(result.total, 16900); // 13,000 × 1.3
   });

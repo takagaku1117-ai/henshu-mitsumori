@@ -1,7 +1,8 @@
 // 返信文の作成（src/lib/reply.ts）のテスト。npm test で実行する
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { DEFAULT_PRICES, estimate } from "../src/lib/estimate.ts";
+import { estimate } from "../src/lib/estimate.ts";
+import { DEFAULT_PRICES } from "../src/lib/prices.ts";
 import { buildReply, formatJaDate } from "../src/lib/reply.ts";
 
 const TODAY = "2026-10-30";
@@ -18,7 +19,7 @@ const reply = ({ clientName = "", ...overrides } = {}) => {
   };
   return buildReply({
     input,
-    result: estimate(input, TODAY),
+    result: estimate(input, TODAY, DEFAULT_PRICES),
     clientName,
     today: TODAY,
     rushPercent: DEFAULT_PRICES.rushPercent,

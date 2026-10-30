@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useSyncExternalStore } from "react";
 import {
-  DEFAULT_PRICES,
   RUSH_DAYS,
   addDays,
   estimate,
@@ -11,6 +11,7 @@ import {
   type Telop,
 } from "@/lib/estimate";
 import { TELOP_LABELS, buildReply, rushReason, yen } from "@/lib/reply";
+import { usePrices } from "@/lib/use-prices";
 
 const TELOP_OPTIONS = Object.entries(TELOP_LABELS) as [Telop, string][];
 
@@ -31,6 +32,7 @@ const cardTitleClass = "mb-3 border-b border-dashed border-line pb-2 font-bold";
 
 export default function Estimator() {
   const today = useToday();
+  const { prices, repaired } = usePrices();
   const [minutes, setMinutes] = useState("10");
   const [telop, setTelop] = useState<Telop>("none");
   const [bgm, setBgm] = useState(false);
@@ -56,7 +58,7 @@ export default function Estimator() {
     deliveryDate: deliveryDate ?? addDays(today, DEFAULT_LEAD_DAYS),
   };
   const errors = validateInput(input, today);
-  const result = errors.length === 0 ? estimate(input, today) : null;
+  const result = errors.length === 0 ? estimate(input, today, prices) : null;
   const reply =
     result === null
       ? null
@@ -65,7 +67,7 @@ export default function Estimator() {
           result,
           clientName,
           today,
-          rushPercent: DEFAULT_PRICES.rushPercent,
+          rushPercent: prices.rushPercent,
         });
 
   async function copyReply() {
@@ -158,7 +160,7 @@ export default function Estimator() {
             />
             <span className="mt-1 block text-xs text-ink-soft">
               今日から{RUSH_DAYS}日後までの納品は特急料金（
-              {DEFAULT_PRICES.rushPercent}%）がつきます
+              {prices.rushPercent}%）がつきます
             </span>
           </label>
         </div>
@@ -166,6 +168,14 @@ export default function Estimator() {
 
       <section className={cardClass} aria-live="polite">
         <h2 className={cardTitleClass}>見積もり金額</h2>
+        {repaired && (
+          <p className="mb-3 rounded bg-accent-wash p-2 text-xs text-accent">
+            保存された料金表の一部が読めなかったため、その項目は初期値で計算しています。
+            <Link href="/settings" className="underline">
+              料金表を確認
+            </Link>
+          </p>
+        )}
         {result === null ? (
           <ul className="space-y-1 text-sm text-accent">
             {errors.map((error) => (
@@ -193,7 +203,7 @@ export default function Estimator() {
                 {result.rush && (
                   <tr className="border-t border-line bg-accent-wash text-accent">
                     <td className="px-1 py-1.5">
-                      特急料金（{DEFAULT_PRICES.rushPercent}%）
+                      特急料金（{prices.rushPercent}%）
                       <span className="block text-xs">
                         {rushReason(result.rush.daysLeft)}
                       </span>
