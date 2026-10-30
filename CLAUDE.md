@@ -29,6 +29,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 見積もり計算は `src/lib/estimate.ts` の関数にまとめ、`tests/*.test.mjs`（node:test）でテストする。計算を変えたらテストも足す
 - 記事・提出物はこのリポジトリに入れない（`~/Desktop/課題2_編集ミツモリ/` に置く）
 
+## コマンド
+
+- `npm run dev` … 開発サーバー（http://localhost:3000）
+- `npm test` … `tests/**/*.test.mjs` を全部実行。1ファイルだけなら `node --test tests/estimate.test.mjs`、1テストだけなら `--test-name-pattern="特急"` を足す
+- `npm run lint` / `npm run build`
+
+## 構成メモ（ファイルを見ただけでは気づきにくい点）
+
+- Next.js 16（`node_modules/next/dist/docs/` を先に読む）。`next.config.ts` で `cacheComponents` と `partialPrefetching` が有効
+- Tailwind v4 は PostCSS ではなく `next.config.ts` の turbopack ルール（`@tailwindcss/turbopack`）で読み込んでいる
+- 色・フォントは `src/app/globals.css` の `@theme` にトークンとして定義済み（`paper` / `panel` / `ink` / `ink-soft` / `line` / `accent` / `accent-wash`）。色コードを直接書かず `bg-panel` `text-ink-soft` のように使う
+- テストは `.mjs` から `src/lib/estimate.ts` を直接 import する想定（Node 24 の型ストリッピング）。そのため `estimate.ts` は型注釈を消すだけで動く書き方にする（`enum`・`namespace`・パス別名 `@/` の import は使わない）
+- 特急判定は「今日」に依存するので、計算関数は今日の日付を引数で受け取り、テストで固定できるようにする
+
 ## 実装ステップ（MVP）
 
 | #   | 内容                                 | 機能要件   | 動作確認                                                          |
