@@ -42,7 +42,7 @@ export type Estimate = {
 };
 
 // 納品希望日が今日〜3日後（両端を含む）なら特急
-const RUSH_DAYS = 3;
+export const RUSH_DAYS = 3;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 // "YYYY-MM-DD" を UTC の0時として数値にする。時刻・タイムゾーン・夏時間の影響を受けない
@@ -55,6 +55,13 @@ export function daysUntil(today: string, deliveryDate: string) {
   return Math.round(
     (toUtcDay(deliveryDate) - toUtcDay(today)) / (24 * 60 * 60 * 1000),
   );
+}
+
+// "YYYY-MM-DD" の days 日後を "YYYY-MM-DD" で返す（納品希望日の初期値に使う）
+export function addDays(date: string, days: number) {
+  return new Date(toUtcDay(date) + days * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 export function isRush(daysLeft: number) {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   DEFAULT_PRICES,
+  addDays,
   daysUntil,
   estimate,
   isRush,
@@ -121,6 +122,21 @@ describe("validateInput", () => {
       validateInput(input({ deliveryDate: "2026-10-29" }), TODAY),
       ["納品希望日に過去の日付は選べません"],
     );
+  });
+});
+
+describe("addDays（納品希望日の初期値）", () => {
+  test("7日後", () => {
+    assert.equal(addDays("2026-10-30", 7), "2026-11-06");
+  });
+
+  test("月またぎ・年またぎ", () => {
+    assert.equal(addDays("2026-01-31", 1), "2026-02-01");
+    assert.equal(addDays("2026-12-29", 7), "2027-01-05");
+  });
+
+  test("7日後は特急にならない", () => {
+    assert.equal(isRush(daysUntil(TODAY, addDays(TODAY, 7))), false);
   });
 });
 
